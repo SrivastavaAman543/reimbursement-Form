@@ -1,0 +1,143 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* ── Light Mode (Slate Grey) ── */
+  :root {
+    --navy-950: 248 250 252;     /* slate-50  #F8FAFC */
+    --navy-900: 255 255 255;     /* white     #FFFFFF */
+    --navy-800: 241 245 249;     /* slate-100 #F1F5F9 */
+    --navy-700: 226 232 240;     /* slate-200 #E2E8F0 */
+    --navy-600: 203 213 225;     /* slate-300 #CBD5E1 */
+
+    /* Pastel colors for Light Mode */
+    --color-accent: 253 186 116;   /* Pastel Orange #FDBA74 */
+    --color-success: 134 239 172;  /* Pastel Green #86EFAC */
+    --color-danger: 252 165 165;   /* Pastel Red #FCA5A5 */
+    
+    /* Global text colors */
+    --text-primary: 30 41 59;      /* text-slate-800 */
+    --text-secondary: 71 85 105;   /* text-slate-600 */
+    --text-muted: 100 116 139;     /* text-slate-500 */
+  }
+
+  /* ── Dark Mode ── */
+  .dark {
+    --navy-950: 11 18 32;       /* #0B1220 */
+    --navy-900: 15 23 42;       /* #0F172A */
+    --navy-800: 17 24 39;       /* #111827 */
+    --navy-700: 30 41 59;       /* #1E293B */
+    --navy-600: 51 65 85;       /* #334155 */
+
+    /* Pastel colors for Dark Mode */
+    --color-accent: 253 186 116;   /* Pastel Orange #FDBA74 */
+    --color-success: 110 231 183;  /* Pastel Green #6EE7B7 */
+    --color-danger: 252 165 165;   /* Pastel Red #FCA5A5 */
+
+    /* Global text colors */
+    --text-primary: 241 245 249;   /* text-slate-100 */
+    --text-secondary: 203 213 225; /* text-slate-300 */
+    --text-muted: 148 163 184;     /* text-slate-400 */
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    @apply bg-navy-950 text-slate-800 transition-colors duration-200;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  .dark body {
+    @apply text-slate-200;
+  }
+
+  button, a, input, select, textarea {
+    transition: all 0.2s ease;
+  }
+
+  *:focus-visible {
+    outline: 2px solid rgb(var(--color-accent));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@layer components {
+  /* Glassmorphism card – adapts to theme */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+  }
+  .dark .glass-card {
+    background: rgba(17, 24, 39, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  /* Skeleton loader */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      rgba(226, 232, 240, 0.5) 25%,
+      rgba(226, 232, 240, 0.8) 50%,
+      rgba(226, 232, 240, 0.5) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite linear;
+    border-radius: 12px;
+  }
+  .dark .skeleton {
+    background: linear-gradient(
+      90deg,
+      rgba(30, 41, 59, 0.5) 25%,
+      rgba(30, 41, 59, 0.8) 50%,
+      rgba(30, 41, 59, 0.5) 75%
+    );
+    background-size: 200% 100%;
+  }
+
+  .glow-amber {
+    box-shadow: 0 0 20px rgba(var(--color-accent), 0.15);
+  }
+  .glow-amber-hover:hover {
+    box-shadow: 0 0 30px rgba(var(--color-accent), 0.25);
+  }
+
+  .card-hover {
+    @apply transition-all duration-200;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08); /* softer shadow for bright mode */
+  }
+  .dark .card-hover:hover {
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+::selection {
+  background: rgba(var(--color-accent), 0.3);
+}
