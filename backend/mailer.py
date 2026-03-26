@@ -29,7 +29,7 @@ def send_notification(expense):
             
             .table-container {{ padding: 0 30px 30px 30px; text-align: center; overflow-x: auto; }}
             .expense-table {{ width: 100%; border-collapse: collapse; border: 2px solid black; font-size: 13px; text-align: left; }}
-            .expense-table th {{ border: 1px solid black; padding: 12px; background-color: #e5e7eb; color: #1f2937; text-align: center; }}
+            .expense-table th {{ border: 1px solid black; padding: 12px; background-color: #FDBA74; color: #1e293b; text-align: center; }}
             .expense-table td {{ border: 1px solid black; padding: 12px; color: #0f172a; word-wrap: break-word; text-align: center; }}
             .footer-section {{ background-color: #0f172a; color: #ffffff; text-align: center; padding: 20px; font-size: 12px; }}
             
@@ -129,3 +129,21 @@ def send_notification(expense):
         print("====== EMAIL NOTIFICATION (MOCK) ======")
         print(text_content)
         print("=======================================")
+
+def send_notification_from_dict(expense_dict):
+    class MockExpense:
+        def __init__(self, data):
+            # All fields are accessed as attributes in send_notification
+            self.title = data.get('title')
+            self.description = data.get('description')
+            self.employee_name = data.get('employee_name')
+            self.employee_email = data.get('employee_email')
+            self.category = data.get('category')
+            self.date = data.get('date')
+            self.amount = data.get('amount', 0)
+            self.payment_mode = data.get('payment_mode')
+            self.receipt_path = data.get('receipt_path')
+            self.status = data.get('status', 'pending')
+            
+    mock_obj = MockExpense(expense_dict)
+    return send_notification(mock_obj)

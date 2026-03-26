@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import { useTranslation } from '../contexts/TranslationContext';
 
 const API = 'http://localhost:8000/api';
 
 function LoginPage({ t, onLogin }) {
+  const { lang, setLang } = useTranslation();
   const [mode, setMode] = useState('login');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -42,6 +44,18 @@ function LoginPage({ t, onLogin }) {
 
   return (
     <div className="min-h-screen bg-navy-950 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Language Switcher */}
+      <div className="absolute top-6 right-6 z-50">
+        <div className="flex bg-navy-800/80 backdrop-blur-md p-0.5 rounded-lg border border-navy-700 h-9 shrink-0 shadow-xl">
+          <button onClick={() => setLang('en')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all ${lang === 'en' ? 'bg-white dark:bg-navy-600 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+            EN
+          </button>
+          <button onClick={() => setLang('hi')} className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all ${lang === 'hi' ? 'bg-white dark:bg-navy-600 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+            HI
+          </button>
+        </div>
+      </div>
+
       {/* Animated blobs */}
       <div className="absolute top-1/4 -left-32 w-96 h-96 bg-accent/10 rounded-full filter blur-[120px] animate-blob" />
       <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-blue-500/10 rounded-full filter blur-[120px] animate-blob" style={{ animationDelay: '2s' }} />
@@ -62,13 +76,13 @@ function LoginPage({ t, onLogin }) {
           <div className="px-8 sm:px-10 pb-8 sm:pb-10">
             {error && (
               <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-5 p-3 bg-danger/10 border border-danger/20 rounded-xl text-danger text-sm font-medium flex items-center gap-2">
-                <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+                <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
                 {error}
               </motion.div>
             )}
             {success && (
               <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-5 p-3 bg-success/10 border border-success/20 rounded-xl text-success text-sm font-medium flex items-center gap-2">
-                <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
+                <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
                 {success}
               </motion.div>
             )}

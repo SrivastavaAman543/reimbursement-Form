@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, status
+from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException, status, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -82,7 +82,8 @@ async def create_expense(
     date: str = Form(...), 
     receipt: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(get_current_user),
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     if amount <= 0:
         raise HTTPException(status_code=400, detail="Amount must be greater than 0")
@@ -122,7 +123,20 @@ async def create_expense(
     db.commit()
     db.refresh(db_expense)
     
-    mailer.send_notification(db_expense)
+    if background_tasks:
+        expense_data = {
+            "title": db_expense.title,
+            "description": db_expense.description,
+            "employee_name": db_expense.employee_name,
+            "employee_email": db_expense.employee_email,
+            "category": db_expense.category,
+            "date": db_expense.date,
+            "amount": db_expense.amount,
+            "payment_mode": db_expense.payment_mode,
+            "receipt_path": db_expense.receipt_path,
+            "status": db_expense.status
+        }
+        background_tasks.add_task(mailer.send_notification_from_dict, expense_data)
     
     return db_expense
 
@@ -134,11 +148,12 @@ def get_expenses(db: Session = Depends(get_db), current_user: models.User = Depe
     return db.query(models.Expense).filter(models.Expense.user_id == current_user.id).order_by(desc(models.Expense.submitted_at)).all()
 
 @app.patch("/api/expenses/{expense_id}", response_model=schemas.ExpenseResponse)
-def update_expense_status(
+async def update_expense_status(
     expense_id: int, 
     expense_update: schemas.ExpenseUpdate, 
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(get_current_user),
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     if current_user.user_role != "ADMIN":
         raise HTTPException(status_code=403, detail="Not authorized to update expense status")
@@ -154,7 +169,21 @@ def update_expense_status(
     db.commit()
     db.refresh(db_expense)
     
-    mailer.send_notification(db_expense)
+    if background_tasks:
+        # Convert to dict to avoid DetachedInstanceError in background task
+        expense_data = {
+            "title": db_expense.title,
+            "description": db_expense.description,
+            "employee_name": db_expense.employee_name,
+            "employee_email": db_expense.employee_email,
+            "category": db_expense.category,
+            "date": db_expense.date,
+            "amount": db_expense.amount,
+            "payment_mode": db_expense.payment_mode,
+            "receipt_path": db_expense.receipt_path,
+            "status": db_expense.status
+        }
+        background_tasks.add_task(mailer.send_notification_from_dict, expense_data)
     
     return db_expense
 

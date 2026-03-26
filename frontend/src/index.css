@@ -5,42 +5,65 @@
 @tailwind utilities;
 
 @layer base {
+
   /* ── Light Mode (Slate Grey) ── */
   :root {
-    --navy-950: 248 250 252;     /* slate-50  #F8FAFC */
-    --navy-900: 255 255 255;     /* white     #FFFFFF */
-    --navy-800: 241 245 249;     /* slate-100 #F1F5F9 */
-    --navy-700: 226 232 240;     /* slate-200 #E2E8F0 */
-    --navy-600: 203 213 225;     /* slate-300 #CBD5E1 */
+    --navy-950: 248 250 252;
+    /* slate-50  #F8FAFC */
+    --navy-900: 255 255 255;
+    /* white     #FFFFFF */
+    --navy-800: 241 245 249;
+    /* slate-100 #F1F5F9 */
+    --navy-700: 226 232 240;
+    /* slate-200 #E2E8F0 */
+    --navy-600: 203 213 225;
+    /* slate-300 #CBD5E1 */
 
     /* Pastel colors for Light Mode */
-    --color-accent: 253 186 116;   /* Pastel Orange #FDBA74 */
-    --color-success: 134 239 172;  /* Pastel Green #86EFAC */
-    --color-danger: 252 165 165;   /* Pastel Red #FCA5A5 */
-    
+    --color-accent: 253 186 116;
+    /* Pastel Orange #FDBA74 */
+    --color-success: 134 239 172;
+    /* Pastel Green #86EFAC */
+    --color-danger: 252 165 165;
+    /* Pastel Red #FCA5A5 */
+
     /* Global text colors */
-    --text-primary: 30 41 59;      /* text-slate-800 */
-    --text-secondary: 71 85 105;   /* text-slate-600 */
-    --text-muted: 100 116 139;     /* text-slate-500 */
+    --text-primary: 30 41 59;
+    /* text-slate-800 */
+    --text-secondary: 71 85 105;
+    /* text-slate-600 */
+    --text-muted: 100 116 139;
+    /* text-slate-500 */
   }
 
   /* ── Dark Mode ── */
   .dark {
-    --navy-950: 11 18 32;       /* #0B1220 */
-    --navy-900: 15 23 42;       /* #0F172A */
-    --navy-800: 17 24 39;       /* #111827 */
-    --navy-700: 30 41 59;       /* #1E293B */
-    --navy-600: 51 65 85;       /* #334155 */
+    --navy-950: 11 18 32;
+    /* #0B1220 */
+    --navy-900: 15 23 42;
+    /* #0F172A */
+    --navy-800: 17 24 39;
+    /* #111827 */
+    --navy-700: 30 41 59;
+    /* #1E293B */
+    --navy-600: 51 65 85;
+    /* #334155 */
 
     /* Pastel colors for Dark Mode */
-    --color-accent: 253 186 116;   /* Pastel Orange #FDBA74 */
-    --color-success: 110 231 183;  /* Pastel Green #6EE7B7 */
-    --color-danger: 252 165 165;   /* Pastel Red #FCA5A5 */
+    --color-accent: 253 186 116;
+    /* Pastel Orange #FDBA74 */
+    --color-success: 110 231 183;
+    /* Pastel Green #6EE7B7 */
+    --color-danger: 252 165 165;
+    /* Pastel Red #FCA5A5 */
 
     /* Global text colors */
-    --text-primary: 241 245 249;   /* text-slate-100 */
-    --text-secondary: 203 213 225; /* text-slate-300 */
-    --text-muted: 148 163 184;     /* text-slate-400 */
+    --text-primary: 241 245 249;
+    /* text-slate-100 */
+    --text-secondary: 203 213 225;
+    /* text-slate-300 */
+    --text-muted: 148 163 184;
+    /* text-slate-400 */
   }
 
   html {
@@ -53,11 +76,16 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
   .dark body {
     @apply text-slate-200;
   }
 
-  button, a, input, select, textarea {
+  button,
+  a,
+  input,
+  select,
+  textarea {
     transition: all 0.2s ease;
   }
 
@@ -66,9 +94,28 @@
     outline-offset: 2px;
     border-radius: 4px;
   }
+
+  /* ── Autofill Styling ── */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px white inset !important;
+    -webkit-text-fill-color: #1e293b !important;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+
+  .dark input:-webkit-autofill,
+  .dark input:-webkit-autofill:hover,
+  .dark input:-webkit-autofill:focus,
+  .dark input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px #0f172a inset !important;
+    -webkit-text-fill-color: #f1f5f9 !important;
+  }
 }
 
 @layer components {
+
   /* Glassmorphism card – adapts to theme */
   .glass-card {
     background: rgba(255, 255, 255, 0.85);
@@ -76,6 +123,7 @@
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(0, 0, 0, 0.04);
   }
+
   .dark .glass-card {
     background: rgba(17, 24, 39, 0.8);
     border: 1px solid rgba(255, 255, 255, 0.06);
@@ -83,29 +131,27 @@
 
   /* Skeleton loader */
   .skeleton {
-    background: linear-gradient(
-      90deg,
-      rgba(226, 232, 240, 0.5) 25%,
-      rgba(226, 232, 240, 0.8) 50%,
-      rgba(226, 232, 240, 0.5) 75%
-    );
+    background: linear-gradient(90deg,
+        rgba(226, 232, 240, 0.5) 25%,
+        rgba(226, 232, 240, 0.8) 50%,
+        rgba(226, 232, 240, 0.5) 75%);
     background-size: 200% 100%;
     animation: shimmer 2s infinite linear;
     border-radius: 12px;
   }
+
   .dark .skeleton {
-    background: linear-gradient(
-      90deg,
-      rgba(30, 41, 59, 0.5) 25%,
-      rgba(30, 41, 59, 0.8) 50%,
-      rgba(30, 41, 59, 0.5) 75%
-    );
+    background: linear-gradient(90deg,
+        rgba(30, 41, 59, 0.5) 25%,
+        rgba(30, 41, 59, 0.8) 50%,
+        rgba(30, 41, 59, 0.5) 75%);
     background-size: 200% 100%;
   }
 
   .glow-amber {
     box-shadow: 0 0 20px rgba(var(--color-accent), 0.15);
   }
+
   .glow-amber-hover:hover {
     box-shadow: 0 0 30px rgba(var(--color-accent), 0.25);
   }
@@ -113,12 +159,15 @@
   .card-hover {
     @apply transition-all duration-200;
   }
+
   .card-hover:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.08); /* softer shadow for bright mode */
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    /* softer shadow for bright mode */
   }
+
   .dark .card-hover:hover {
-    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
   }
 }
 
@@ -127,13 +176,16 @@
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(148, 163, 184, 0.3);
   border-radius: 999px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.5);
 }
@@ -141,3 +193,61 @@
 ::selection {
   background: rgba(var(--color-accent), 0.3);
 }
+/* -- Custom DatePicker Styling -- */
+.react-datepicker {
+  background: white !important;
+  border: 1px solid rgba(0,0,0,0.1) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.15) !important;
+  font-family: inherit !important;
+  overflow: hidden !important;
+  margin-top: 10px !important;
+}
+.react-datepicker__header {
+  background-color: #26714a !important; 
+  border-bottom: none !important;
+  padding: 12px 0 !important;
+}
+.react-datepicker__current-month,
+.react-datepicker__day-name {
+  color: white !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+}
+.react-datepicker__day--selected,
+.react-datepicker__day--in-selecting-range,
+.react-datepicker__day--in-range {
+  background-color: #26714a !important;
+  color: white !important;
+}
+.react-datepicker__day {
+  border-radius: 50% !important;
+  transition: all 0.2s ease !important;
+}
+.react-datepicker__day:hover {
+  background-color: #e5f4ed !important;
+  color: #26714a !important;
+}
+.react-datepicker__triangle {
+  display: none !important;
+}
+.dark .react-datepicker {
+  background: #0f172a !important;
+}
+.dark .react-datepicker__day {
+  color: #94a3b8 !important;
+}
+.dark .react-datepicker__day:hover {
+  background-color: rgba(38, 113, 74, 0.2) !important;
+}
+
+
+/* Force DatePicker to the Front */
+.react-datepicker-popper {
+  z-index: 10000 !important;
+}
+.react-datepicker__portal {
+  z-index: 10000 !important;
+}
+

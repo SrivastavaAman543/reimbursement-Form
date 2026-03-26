@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import ChipSelector from './ChipSelector';
+import ActionPop from './ActionPop';
 
 const API_URL = "http://localhost:8000/api/expenses";
 
@@ -19,8 +20,10 @@ const ExpenseForm = ({ t, currentLang, token }) => {
   const [customPayment, setCustomPayment] = useState('');
   const [file, setFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionPop, setActionPop] = useState({ show: false, message: '', type: 'success', title: '' });
+  const [showReceiptErr, setShowReceiptErr] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  
+
   const fileInputRef = useRef(null);
 
   const categories = [
@@ -85,10 +88,18 @@ const ExpenseForm = ({ t, currentLang, token }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!formData.employee_name || !formData.employee_email || !formData.title || !formData.amount || !formData.category || !formData.payment_mode || !formData.date || !formData.description || !file) {
-        alert("Please fill all required fields and upload a receipt.");
-        return;
+
+    // Trigger native browser tooltips
+    if (!e.target.checkValidity()) {
+      e.target.reportValidity();
+      return;
+    }
+
+    // Secondary check for file
+    if (!file) {
+      setShowReceiptErr(true);
+      setTimeout(() => setShowReceiptErr(false), 3000);
+      return;
     }
 
     setIsSubmitting(true);
@@ -101,7 +112,7 @@ const ExpenseForm = ({ t, currentLang, token }) => {
       if (finalData.payment_mode === 'Other') {
         finalData.payment_mode = customPayment || 'Other';
       }
-      
+
       Object.keys(finalData).forEach(key => {
         data.append(key, finalData[key]);
       });
@@ -113,13 +124,14 @@ const ExpenseForm = ({ t, currentLang, token }) => {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       setFormData({
         employee_name: '', employee_email: '', title: '', description: '', amount: '', category: '', payment_mode: '', date: ''
       });
       setCustomCategory(''); setCustomPayment(''); setFile(null);
       window.dispatchEvent(new CustomEvent('expense-submitted'));
-      
+      setActionPop({ show: true, message: t.success || "Expense submitted successfully", type: 'success', title: 'SUBMITTED' });
+
     } catch (error) {
       console.error(error);
       if (error.response && error.response.status === 401) {
@@ -132,14 +144,19 @@ const ExpenseForm = ({ t, currentLang, token }) => {
     }
   };
 
-  const inputClass = "w-full pl-10 pr-4 py-3 bg-navy-900 border border-navy-700 rounded-xl text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition-all text-sm";
+  const inputClass = "w-full pl-10 pr-4 py-3 bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700/50 rounded-xl text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:border-accent focus:ring-4 focus:ring-accent/10 outline-none transition-all text-sm shadow-[inset_0_2px_8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]";
   const iconClass = "absolute left-3.5 top-3.5 text-slate-600 dark:text-slate-500 dark:text-slate-500 pointer-events-none";
   const labelClass = "block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2 uppercase tracking-wider";
 
+  const getInputClass = (fieldName) => {
+    const base = "w-full pl-10 pr-4 py-3 bg-white dark:bg-navy-900 border rounded-xl text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:border-accent focus:ring-4 focus:ring-accent/10 outline-none transition-all text-sm shadow-[inset_0_2px_8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]";
+    return `${base} border-slate-200 dark:border-navy-700/50`;
+  };
+
   return (
-    <div className="max-w-[1280px] mx-auto p-6 lg:p-8 bg-navy-800 rounded-2xl border border-navy-700">
+    <div className="max-w-[1280px] mx-auto p-6 lg:p-8 bg-slate-50 dark:bg-navy-800 rounded-3xl border border-white dark:border-navy-700/50 shadow-[0_15px_40px_rgba(30,41,59,0.08)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] transition-all duration-300">
       <form onSubmit={handleSubmit} className="flex flex-col gap-8">
-        
+
         {/* Row 1: 4 columns */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div>
@@ -148,7 +165,7 @@ const ExpenseForm = ({ t, currentLang, token }) => {
               <svg className={`w-4 h-4 ${iconClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-              <input type="text" name="employee_name" value={formData.employee_name} onChange={handleInputChange} required className={inputClass} placeholder={t.full_name || 'Full Name'} />
+              <input type="text" name="employee_name" value={formData.employee_name} onChange={handleInputChange} required className={getInputClass('employee_name')} placeholder={t.full_name || 'Full Name'} />
             </div>
           </div>
           <div>
@@ -157,7 +174,7 @@ const ExpenseForm = ({ t, currentLang, token }) => {
               <svg className={`w-4 h-4 ${iconClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
-              <input type="email" name="employee_email" value={formData.employee_email} onChange={handleInputChange} required className={inputClass} placeholder={t.email_placeholder_short || "employee@company.com"} />
+              <input type="email" name="employee_email" value={formData.employee_email} onChange={handleInputChange} required className={getInputClass('employee_email')} placeholder={t.email_placeholder_short || "employee@company.com"} />
             </div>
           </div>
           <div>
@@ -166,14 +183,14 @@ const ExpenseForm = ({ t, currentLang, token }) => {
               <svg className={`w-4 h-4 ${iconClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <input type="date" name="date" value={formData.date} onChange={handleInputChange} onClick={e => e.target.showPicker && e.target.showPicker()} required className={`${inputClass} cursor-pointer [&::-webkit-calendar-picker-indicator]:brightness-50 [&::-webkit-calendar-picker-indicator]:invert`} />
+              <input type="date" name="date" value={formData.date} onChange={handleInputChange} onClick={e => e.target.showPicker && e.target.showPicker()} required className={`${getInputClass('date')} cursor-pointer [&::-webkit-calendar-picker-indicator]:brightness-50 [&::-webkit-calendar-picker-indicator]:invert`} />
             </div>
           </div>
           <div>
             <label className={labelClass}>{t.amount || 'Amount'} (INR) *</label>
             <div className="relative">
               <span className={`text-sm font-semibold ${iconClass}`}>₹</span>
-              <input type="number" name="amount" min="1" step="0.01" value={formData.amount} onChange={handleInputChange} required className={`${inputClass} font-semibold`} placeholder="0.00" />
+              <input type="number" name="amount" min="1" step="0.01" value={formData.amount} onChange={handleInputChange} required className={`${getInputClass('amount')} font-semibold`} placeholder="0.00" />
             </div>
           </div>
         </div>
@@ -185,7 +202,7 @@ const ExpenseForm = ({ t, currentLang, token }) => {
             <svg className={`w-4 h-4 ${iconClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
             </svg>
-            <input type="text" name="title" value={formData.title} onChange={handleInputChange} required className={inputClass} placeholder={t.placeholder_title || 'e.g., Client Dinner at Downtown'} />
+            <input type="text" name="title" value={formData.title} onChange={handleInputChange} required className={getInputClass('title')} placeholder={t.placeholder_title || 'e.g., Client Dinner at Downtown'} />
           </div>
         </div>
 
@@ -193,7 +210,7 @@ const ExpenseForm = ({ t, currentLang, token }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
             <label className={labelClass}>{t.category || 'Category'} *</label>
-            <ChipSelector options={categories} selected={formData.category} onChange={(val) => setFormData(p => ({...p, category: val}))} />
+            <ChipSelector options={categories} selected={formData.category} onChange={(val) => setFormData(p => ({ ...p, category: val }))} />
             {formData.category === 'Other' && (
               <div className="relative mt-4">
                 <input type="text" value={customCategory} onChange={(e) => setCustomCategory(e.target.value)} required className="w-full px-4 py-3 bg-navy-900 border border-navy-700 rounded-xl text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition-all text-sm" placeholder={t.custom_category || "Specify Category"} />
@@ -202,7 +219,7 @@ const ExpenseForm = ({ t, currentLang, token }) => {
           </div>
           <div>
             <label className={labelClass}>{t.payment_mode || 'Payment Mode'} *</label>
-            <ChipSelector options={paymentModes} selected={formData.payment_mode} onChange={(val) => setFormData(p => ({...p, payment_mode: val}))} />
+            <ChipSelector options={paymentModes} selected={formData.payment_mode} onChange={(val) => setFormData(p => ({ ...p, payment_mode: val }))} />
             {formData.payment_mode === 'Other' && (
               <div className="relative mt-4">
                 <input type="text" value={customPayment} onChange={(e) => setCustomPayment(e.target.value)} required className="w-full px-4 py-3 bg-navy-900 border border-navy-700 rounded-xl text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition-all text-sm" placeholder={t.custom_payment || "Specify Payment Mode"} />
@@ -219,14 +236,14 @@ const ExpenseForm = ({ t, currentLang, token }) => {
               <svg className={`w-4 h-4 mt-0 ${iconClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h7" />
               </svg>
-              <textarea name="description" value={formData.description} onChange={handleInputChange} required className={`${inputClass} flex-1 h-full min-h-[140px] resize-none pb-4`} placeholder={t.placeholder_desc || 'Provide more details...'} />
+              <textarea name="description" value={formData.description} onChange={handleInputChange} required className={`${getInputClass('description')} flex-1 h-full min-h-[140px] resize-none pb-4`} placeholder={t.placeholder_desc || 'Provide more details...'} />
             </div>
           </div>
           <div className="flex flex-col h-full">
             <label className={labelClass}>{t.receipt || 'Receipt'} *</label>
-            <div 
-              className={`flex-1 flex flex-col justify-center items-center p-6 border-2 border-dashed rounded-xl transition-all cursor-pointer min-h-[140px] h-full relative overflow-hidden group
-                ${dragActive ? 'border-accent bg-accent/5' : 'border-navy-600 hover:border-accent/40 bg-navy-900'}
+            <div
+              className={`flex-1 flex flex-col justify-center items-center p-6 border-2 border-dashed rounded-xl transition-all cursor-pointer min-h-[140px] h-full relative overflow-hidden group shadow-[inset_0_2px_8px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]
+                ${dragActive ? 'border-accent bg-accent/5' : 'border-slate-200 dark:border-navy-600 hover:border-accent/40 bg-white dark:bg-navy-900'}
               `}
               onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop} onClick={() => fileInputRef.current.click()}
             >
@@ -259,10 +276,10 @@ const ExpenseForm = ({ t, currentLang, token }) => {
 
         {/* Submit */}
         <div className="flex justify-end pt-6 mt-2 border-t border-navy-700">
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={isSubmitting}
-            className="px-8 py-3 bg-accent hover:bg-accent-600 text-navy-950 text-sm font-bold rounded-xl shadow-glow-amber hover:shadow-glow-amber-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-wait flex justify-center items-center gap-2"
+            className="px-8 py-3 bg-accent hover:bg-accent-600 text-navy-950 text-sm font-bold rounded-xl shadow-[0_8px_20px_rgba(var(--color-accent),0.25)] hover:shadow-[0_12px_30px_rgba(var(--color-accent),0.35)] hover:-translate-y-1 active:translate-y-0 transition-all duration-200 disabled:opacity-50 disabled:cursor-wait flex justify-center items-center gap-2"
           >
             {isSubmitting ? (
               <>
@@ -279,6 +296,18 @@ const ExpenseForm = ({ t, currentLang, token }) => {
         </div>
 
       </form>
+      {showReceiptErr && (
+        <div className="fixed top-6 right-6 z-[110] bg-danger text-white px-5 py-2.5 rounded-xl shadow-lg shadow-danger/20 font-bold text-sm">
+          Please Upload Receipt
+        </div>
+      )}
+      <ActionPop
+        show={actionPop.show}
+        type={actionPop.type}
+        message={actionPop.message}
+        title={actionPop.title}
+        onClose={() => setActionPop({ ...actionPop, show: false })}
+      />
     </div>
   );
 };

@@ -96,7 +96,8 @@
     "upload_drag_drop": "Upload or drag and drop",
     "remove_file": "Remove File",
     "full_name": "Full Name",
-    "email_placeholder_short": "employee@company.com"
+    "email_placeholder_short": "employee@company.com",
+    "my_requests": "My Requests"
   },
   "hi": {
     "app_title": "खर्च जमा करना",
@@ -165,6 +166,37 @@
     "register_success": "रजिस्ट्रेशन सफल! कृपया साइन इन करें।",
     "loading": "कृपया प्रतीक्षा करें...",
     "logout": "लॉगआउट",
-    "welcome_user": "नमस्ते"
+    "welcome_user": "नमस्ते",
+    "total_requested": "कुल अनुरोधित",
+    "all_time_expenses": "सभी समय के खर्चे",
+    "approved_value": "स्वीकृत मूल्य",
+    "disbursed_successfully": "सफलतापूर्वक वितरित",
+    "pending_action": "लंबित कार्रवाई",
+    "requests_suffix": "अनुरोध",
+    "awaiting_approval": "आपकी स्वीकृति का इंतजार",
+    "rejected_title": "अस्वीकार कर दिया",
+    "declined_expenses": "अस्वीकृत खर्चे",
+    "spend_by_category": "श्रेणी के अनुसार खर्च",
+    "requests_overview": "अनुरोध अवलोकन",
+    "time_period": "समय अवधि",
+    "all_time": "सभी समय",
+    "this_month": "इस महीने",
+    "last_month": "पिछले महीने",
+    "this_year": "इस साल",
+    "all_statuses": "सभी स्थितियां",
+    "all_categories": "सभी श्रेणियां",
+    "menu": "मेन्यू",
+    "dashboard_link": "डैशबोर्ड",
+    "request_list_link": "अनुरोध सूची",
+    "portal_support": "पोर्टल सहायता",
+    "help_center": "सहायता केंद्र",
+    "all_form_requests": "सभी फॉर्म अनुरोध",
+    "search_requests": "अनुरोध खोजें...",
+    "export_btn": "एक्सपोर्ट",
+    "upload_drag_drop": "अपलोड करें या खींचें और छोड़ें",
+    "remove_file": "फाइल हटाएं",
+    "full_name": "पूरा नाम",
+    "email_placeholder_short": "employee@company.com",
+    "my_requests": "मेरे अनुरोध"
   }
 }
