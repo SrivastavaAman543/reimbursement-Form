@@ -3,22 +3,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
-from typing import List
+from typing import List, Optional
 import os
 import uuid
+import json
 import requests
 from database import engine, Base, get_db
 import models, schemas, mailer
 from datetime import datetime
 from auth import hash_password, verify_password, create_access_token, get_current_user
 
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Expense Reimbursement API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -52,7 +53,6 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db.refresh(db_user)
     return db_user
 
-
 @app.post("/api/login", response_model=schemas.Token)
 def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(models.User).filter(models.User.username == user.username).first()
@@ -62,137 +62,174 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
     token = create_access_token(data={"sub": db_user.username})
     return {"access_token": token, "token_type": "bearer"}
 
-
 @app.get("/api/me", response_model=schemas.UserResponse)
 def get_me(current_user: models.User = Depends(get_current_user)):
     return current_user
 
-
 # ==================== EXPENSE ENDPOINTS ====================
 
-@app.post("/api/expenses", response_model=schemas.ExpenseResponse, status_code=status.HTTP_201_CREATED)
-async def create_expense(
-    employee_name: str = Form(...),
-    employee_email: str = Form(...),
-    title: str = Form(...),
-    description: str = Form(...),
-    amount: float = Form(...),
-    category: str = Form(...),
-    payment_mode: str = Form(...),
-    date: str = Form(...), 
-    receipt: UploadFile = File(...),
+@app.post("/api/expenses", response_model=schemas.ExpenseRequestResponse, status_code=status.HTTP_201_CREATED)
+async def create_expense_request(
+    data: str = Form(...), # JSON string of ExpenseRequestCreate
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-    background_tasks: BackgroundTasks = BackgroundTasks()
+    current_user: models.User = Depends(get_current_user)
 ):
-    if amount <= 0:
-        raise HTTPException(status_code=400, detail="Amount must be greater than 0")
-        
-    if receipt.content_type not in ALLOWED_FILE_TYPES:
-        raise HTTPException(status_code=400, detail="File type not allowed. Must be JPG, PNG, or PDF.")
-        
-    file_content = await receipt.read()
-    if len(file_content) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=400, detail="File size exceeds 2MB limit.")
-        
-    ext = receipt.filename.split(".")[-1]
-    unique_filename = f"{uuid.uuid4()}.{ext}"
-    file_path = os.path.join(UPLOAD_DIR, unique_filename)
+    try:
+        request_data = json.loads(data)
+        request_items = request_data.get("items", [])
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid form data format")
+
+    db_request = models.ExpenseRequest(
+        user_id=current_user.id,
+        employee_name=request_data.get("employee_name"),
+        employee_email=request_data.get("employee_email"),
+        request_type=request_data.get("request_type", "claim"),
+        status="pending"
+    )
+    db.add(db_request)
+    db.flush()
+
+    for item in request_items:
+        db_item = models.ExpenseItem(
+            request_id=db_request.id,
+            title=item.get("title"),
+            description=item.get("description"),
+            category=item.get("category"),
+            date=datetime.strptime(item.get("date"), "%Y-%m-%d").date()
+        )
+        db.add(db_item)
+
+    db.commit()
+    db.refresh(db_request)
     
-    with open(file_path, "wb") as f:
-        f.write(file_content)
+    # Manual add items for response
+    items = db.query(models.ExpenseItem).filter(models.ExpenseItem.request_id == db_request.id).all()
+    db_request.items = items
+    return db_request
+
+@app.get("/api/expenses", response_model=List[schemas.ExpenseRequestResponse])
+def get_expenses(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    user_role = current_user.user_role.strip().upper()
+    
+    query = db.query(models.ExpenseRequest)
+    if user_role not in ["ADMIN", "MANAGER"]:
+        query = query.filter(models.ExpenseRequest.user_id == current_user.id)
+    
+    requests = query.order_by(desc(models.ExpenseRequest.submitted_at)).all()
+    
+    # Manually attach items
+    for req in requests:
+        req.items = db.query(models.ExpenseItem).filter(models.ExpenseItem.request_id == req.id).all()
+        
+    return requests
+
+@app.patch("/api/expenses/{request_id}", response_model=schemas.ExpenseRequestResponse)
+def update_request_status(
+    request_id: int, 
+    update: schemas.ExpenseUpdate, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    user_role = current_user.user_role.strip().upper()
+    db_request = db.query(models.ExpenseRequest).filter(models.ExpenseRequest.id == request_id).first()
+    
+    if not db_request:
+        raise HTTPException(status_code=404, detail="Request not found")
+
+    # Step 2: Manager Approval
+    if user_role == "MANAGER":
+        if db_request.status != "pending":
+            raise HTTPException(status_code=400, detail="Request is not in pending status")
+        if update.status not in ["manager_approved", "rejected"]:
+            raise HTTPException(status_code=400, detail="Manager can only set to 'manager_approved' or 'rejected'")
+        
+        # If Expense Approval, skip the Receipt Upload stage (manager_approved)
+        # and go directly to Admin Review (pending_final_approval)
+        if update.status == "manager_approved" and db_request.request_type == "expense_approval":
+            db_request.status = "pending_final_approval"
+        else:
+            db_request.status = update.status
+
+    # Step 4: Admin Approval
+    elif user_role == "ADMIN":
+        if db_request.status != "pending_final_approval" and db_request.status != "pending":
+            # Admin can bypass and approve pending as well? Yes, user said "Admin has all access"
+            pass
+        if update.status not in ["approved", "rejected", "receipt_rejected"]:
+            raise HTTPException(status_code=400, detail="Admin can only set to 'approved', 'rejected', or 'receipt_rejected'")
+        db_request.status = update.status
+        if update.rejection_comment:
+            db_request.rejection_comment = update.rejection_comment
+    
+    else:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    db.commit()
+    db.refresh(db_request)
+    db_request.items = db.query(models.ExpenseItem).filter(models.ExpenseItem.request_id == db_request.id).all()
+    return db_request
+
+@app.patch("/api/expenses/{request_id}/complete", response_model=schemas.ExpenseRequestResponse)
+async def complete_expense_request(
+    request_id: int,
+    item_data: str = Form(...), # JSON string mapping item_id to {amount, payment_mode}
+    receipts: List[UploadFile] = File(...), # Map file index to item index or similar? 
+    # For simplicity, we'll assume files are ordered same as items in item_data list
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    db_request = db.query(models.ExpenseRequest).filter(
+        models.ExpenseRequest.id == request_id, 
+        models.ExpenseRequest.user_id == current_user.id
+    ).first()
+
+    if not db_request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    if db_request.status not in ["manager_approved", "receipt_rejected"]:
+        raise HTTPException(status_code=400, detail="Request must be manager approved or receipt rejected before completion")
 
     try:
-        parsed_date = datetime.strptime(date, "%Y-%m-%d").date()
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+        completion_data = json.loads(item_data)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid item data")
 
-    db_expense = models.Expense(
-        user_id=current_user.id,
-        employee_name=employee_name,
-        employee_email=employee_email,
-        title=title,
-        description=description,
-        amount=amount,
-        category=category,
-        payment_mode=payment_mode,
-        date=parsed_date,
-        receipt_path=file_path
-    )
-    db.add(db_expense)
+    # completion_data should be a list of {id, amount, payment_mode}
+    total_amount = 0.0
+    for i, data in enumerate(completion_data):
+        item_id = data.get("id")
+        db_item = db.query(models.ExpenseItem).filter(models.ExpenseItem.id == item_id).first()
+        if not db_item: continue
+
+        db_item.amount = data.get("amount")
+        db_item.payment_mode = data.get("payment_mode")
+        total_amount += db_item.amount
+
+        # Handle Receipt
+        if i < len(receipts):
+            file = receipts[i]
+            if file.content_type in ALLOWED_FILE_TYPES:
+                file_content = await file.read()
+                ext = file.filename.split(".")[-1]
+                unique_filename = f"{uuid.uuid4()}.{ext}"
+                file_path = os.path.join(UPLOAD_DIR, unique_filename)
+                with open(file_path, "wb") as f:
+                    f.write(file_content)
+                db_item.receipt_path = file_path
+
+    db_request.total_amount = total_amount
+    db_request.status = "pending_final_approval"
     db.commit()
-    db.refresh(db_expense)
-    
-    if background_tasks:
-        expense_data = {
-            "title": db_expense.title,
-            "description": db_expense.description,
-            "employee_name": db_expense.employee_name,
-            "employee_email": db_expense.employee_email,
-            "category": db_expense.category,
-            "date": db_expense.date,
-            "amount": db_expense.amount,
-            "payment_mode": db_expense.payment_mode,
-            "receipt_path": db_expense.receipt_path,
-            "status": db_expense.status
-        }
-        background_tasks.add_task(mailer.send_notification_from_dict, expense_data)
-    
-    return db_expense
-
-@app.get("/api/expenses", response_model=List[schemas.ExpenseResponse])
-def get_expenses(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    if current_user.user_role.strip().upper() == "ADMIN":
-        return db.query(models.Expense).order_by(desc(models.Expense.submitted_at)).all()
-    
-    return db.query(models.Expense).filter(models.Expense.user_id == current_user.id).order_by(desc(models.Expense.submitted_at)).all()
-
-@app.patch("/api/expenses/{expense_id}", response_model=schemas.ExpenseResponse)
-async def update_expense_status(
-    expense_id: int, 
-    expense_update: schemas.ExpenseUpdate, 
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-    background_tasks: BackgroundTasks = BackgroundTasks()
-):
-    if current_user.user_role != "ADMIN":
-        raise HTTPException(status_code=403, detail="Not authorized to update expense status")
-        
-    db_expense = db.query(models.Expense).filter(models.Expense.id == expense_id).first()
-    if not db_expense:
-        raise HTTPException(status_code=404, detail="Expense not found")
-        
-    if expense_update.status not in ["approved", "rejected"]:
-        raise HTTPException(status_code=400, detail="Invalid status. Must be 'approved' or 'rejected'.")
-        
-    db_expense.status = expense_update.status
-    db.commit()
-    db.refresh(db_expense)
-    
-    if background_tasks:
-        # Convert to dict to avoid DetachedInstanceError in background task
-        expense_data = {
-            "title": db_expense.title,
-            "description": db_expense.description,
-            "employee_name": db_expense.employee_name,
-            "employee_email": db_expense.employee_email,
-            "category": db_expense.category,
-            "date": db_expense.date,
-            "amount": db_expense.amount,
-            "payment_mode": db_expense.payment_mode,
-            "receipt_path": db_expense.receipt_path,
-            "status": db_expense.status
-        }
-        background_tasks.add_task(mailer.send_notification_from_dict, expense_data)
-    
-    return db_expense
+    db.refresh(db_request)
+    db_request.items = db.query(models.ExpenseItem).filter(models.ExpenseItem.request_id == db_request.id).all()
+    return db_request
 
 # ==================== TRANSLATION ENDPOINTS ====================
 
 @app.post("/api/translate", response_model=schemas.TranslateResponse)
 def translate_texts(request: schemas.TranslateRequest, db: Session = Depends(get_db)):
     if request.target_language == 'en' or not request.texts:
-        # English is base language, return as is
         return {"translations": {t: t for t in request.texts}}
 
     target_lang = request.target_language
@@ -200,7 +237,6 @@ def translate_texts(request: schemas.TranslateRequest, db: Session = Depends(get
     result = {}
     missing_texts = []
 
-    # 1. Check database cache
     cached_translations = db.query(models.Translation).filter(
         models.Translation.target_language == target_lang,
         models.Translation.source_text.in_(unique_texts)
@@ -214,41 +250,22 @@ def translate_texts(request: schemas.TranslateRequest, db: Session = Depends(get
         else:
             missing_texts.append(text)
 
-    # 2. Call Free Google Translate API for missing texts
     if missing_texts:
         new_cached_entries = []
         for text in missing_texts:
             url = "https://translate.googleapis.com/translate_a/single"
-            params = {
-                "client": "gtx",
-                "sl": "en",
-                "tl": target_lang,
-                "dt": "t",
-                "q": text
-            }
+            params = { "client": "gtx", "sl": "en", "tl": target_lang, "dt": "t", "q": text }
             try:
                 response = requests.get(url, params=params, timeout=5)
                 data = response.json()
-                
-                # data[0] contains a list of translated segments (if the text has multiple sentences)
                 translated = "".join([sentence[0] for sentence in data[0] if sentence[0]])
-                
                 result[text] = translated
-                new_cached_entries.append(
-                    models.Translation(
-                        source_text=text,
-                        target_language=target_lang,
-                        translated_text=translated
-                    )
-                )
+                new_cached_entries.append(models.Translation(source_text=text, target_language=target_lang, translated_text=translated))
             except Exception as e:
-                print(f"Translation Error for '{text}':", str(e))
-                result[text] = text  # Fallback to original text on error
+                result[text] = text
                 
         if new_cached_entries:
-            # Store newly translated texts in DB
             db.bulk_save_objects(new_cached_entries)
             db.commit()
 
     return {"translations": result}
-

@@ -38,7 +38,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="C:\Users\ogesa\Desktop\reimbursement Form\backend\venv"
+VIRTUAL_ENV="C:\Users\ogesa\Downloads\reimbursement Form (2)\reimbursement Form (1)\reimbursement Form\backend\venv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"
